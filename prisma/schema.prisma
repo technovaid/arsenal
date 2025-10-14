@@ -1,0 +1,513 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER MANAGEMENT
+// ============================================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String
+  password      String
+  role          UserRole  @default(VIEWER)
+  isActive      Boolean   @default(true)
+  lastLogin     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  tickets       Ticket[]
+  chatLogs      ChatLog[]
+  notifications Notification[]
+  
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  ANALYST
+  OPS
+  VIEWER
+}
+
+// ============================================
+// SITE MANAGEMENT
+// ============================================
+
+model Site {
+  id                String    @id @default(uuid())
+  siteId            String    @unique
+  siteName          String
+  region            String
+  latitude          Float
+  longitude         Float
+  capacity          Float
+  tier              SiteTier  @default(BRONZE)
+  topology          String?   // Macro, Micro, IBS, etc.
+  isActive          Boolean   @default(true)
+  
+  // Technical specs
+  rectifierCapacity Float?
+  acUnits           Int?
+  acType            String?
+  coolingSystem     String?
+  hasGenset         Boolean   @default(false)
+  
+  // Location details
+  climateZone       String?
+  locationType      String?   // Urban, Suburban, Rural
+  altitude          Float?
+  pricingType       String?   // B3, I3
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  powerUsages       PowerUsage[]
+  settlements       Settlement[]
+  backupPlacements  BackupPlacement[]
+  
+  @@index([region])
+  @@index([tier])
+  @@index([isActive])
+  @@map("sites")
+}
+
+enum SiteTier {
+  PLATINUM
+  GOLD
+  SILVER
+  BRONZE
+}
+
+// ============================================
+// POWER USAGE & BILLING (Use Case 1)
+// ============================================
+
+model PowerUsage {
+  id                      String    @id @default(uuid())
+  siteId                  String
+  date                    DateTime
+  consumptionKwh          Float
+  billingAmount           Float
+  predictedConsumption    Float?
+  predictedBilling        Float?
+  deviation               Float?
+  deviationPercentage     Float?
+  
+  // AMR Data
+  amrReading              Float?
+  amrTimestamp            DateTime?
+  
+  // Productivity data
+  trafficVolume           Float?
+  payload                 Float?
+  
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  
+  site                    Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  clusteringResults       ClusteringResult[]
+  anomalyAlerts           AnomalyAlert[]
+  
+  @@index([siteId, date])
+  @@index([date])
+  @@map("power_usages")
+}
+
+model ClusteringResult {
+  id                String      @id @default(uuid())
+  usageId           String
+  clusterId         Int
+  clusterName       String?
+  efficiencyScore   Float
+  recommendation    String?
+  modelVersion      String?
+  
+  createdAt         DateTime    @default(now())
+  
+  powerUsage        PowerUsage  @relation(fields: [usageId], references: [id], onDelete: Cascade)
+  
+  @@index([clusterId])
+  @@map("clustering_results")
+}
+
+// ============================================
+// SETTLEMENT (Use Case 2)
+// ============================================
+
+model Settlement {
+  id                String    @id @default(uuid())
+  siteId            String
+  
+  // ISR Data
+  isrNumber         String?
+  isrStatus         String?
+  isrExpiryDate     DateTime?
+  frequency         Float?
+  txPower           Float?
+  
+  // Microwave Settlement
+  bandwidth         Float?
+  distance          Float?
+  rentFee           Float?
+  settlementStatus  String?
+  
+  // Detection results
+  detectionResult   String?   // VALID, INVALID, MISMATCH, EXPIRED
+  detectionReason   String?
+  potentialSavings  Float?
+  
+  // NMS Data
+  nmsStatus         String?
+  nmsTxPower        Float?
+  nmsFrequency      Float?
+  nmsThroughput     Float?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  site              Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  
+  @@index([siteId])
+  @@index([detectionResult])
+  @@map("settlements")
+}
+
+// ============================================
+// POWER BACKUP (Use Case 3)
+// ============================================
+
+model BackupPlacement {
+  id                    String    @id @default(uuid())
+  siteId                String
+  
+  // Current configuration
+  currentBatteryCapacity Float?
+  currentGensetCapacity  Float?
+  currentRectifierSize   Float?
+  batterySOH            Float?    // State of Health
+  
+  // Recommended configuration
+  recommendedBatteryCapacity Float?
+  recommendedGensetCapacity  Float?
+  recommendedRectifierSize   Float?
+  
+  // Urgency & Priority
+  urgencyLevel          String?   // HIGH, MEDIUM, LOW
+  priorityScore         Float?
+  
+  // Outage history
+  avgOutageFrequency    Float?
+  avgOutageDuration     Float?
+  lastOutageDate        DateTime?
+  
+  // Prediction
+  predictedBackupDuration Float?
+  riskScore             Float?
+  
+  status                String?   // OK, AT_RISK, CRITICAL
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  site                  Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  
+  @@index([siteId])
+  @@index([urgencyLevel])
+  @@map("backup_placements")
+}
+
+// ============================================
+// ALERT & ANOMALY DETECTION
+// ============================================
+
+model AnomalyAlert {
+  id                String        @id @default(uuid())
+  usageId           String?
+  siteId            String?
+  
+  type              AlertType
+  severity          AlertSeverity
+  title             String
+  description       String
+  
+  // Anomaly details
+  detectedValue     Float?
+  expectedValue     Float?
+  threshold         Float?
+  deviationPercent  Float?
+  
+  // Status
+  status            AlertStatus   @default(OPEN)
+  acknowledgedAt    DateTime?
+  acknowledgedBy    String?
+  resolvedAt        DateTime?
+  resolvedBy        String?
+  resolution        String?
+  
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  
+  powerUsage        PowerUsage?   @relation(fields: [usageId], references: [id], onDelete: Cascade)
+  ticket            Ticket?
+  notifications     Notification[]
+  
+  @@index([type])
+  @@index([severity])
+  @@index([status])
+  @@index([createdAt])
+  @@map("anomaly_alerts")
+}
+
+enum AlertType {
+  POWER_CONSUMPTION_ANOMALY
+  BILLING_MISMATCH
+  SETTLEMENT_INVALID
+  BACKUP_CRITICAL
+  BATTERY_LOW
+  OUTAGE_PREDICTED
+  ISR_EXPIRED
+  NMS_MISMATCH
+}
+
+enum AlertSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  INFO
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  FALSE_POSITIVE
+}
+
+// ============================================
+// TICKETING SYSTEM
+// ============================================
+
+model Ticket {
+  id                String        @id @default(uuid())
+  ticketNumber      String        @unique
+  alertId           String        @unique
+  
+  title             String
+  description       String
+  priority          TicketPriority
+  status            TicketStatus  @default(OPEN)
+  
+  // Assignment
+  assignedToId      String?
+  assignedAt        DateTime?
+  
+  // SLA
+  slaDeadline       DateTime?
+  slaStatus         SLAStatus     @default(ON_TIME)
+  
+  // Resolution
+  resolution        String?
+  resolvedAt        DateTime?
+  closedAt          DateTime?
+  
+  // Metadata
+  tags              String[]
+  category          String?
+  
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  
+  alert             AnomalyAlert  @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  assignedTo        User?         @relation(fields: [assignedToId], references: [id])
+  comments          TicketComment[]
+  history           TicketHistory[]
+  
+  @@index([status])
+  @@index([priority])
+  @@index([assignedToId])
+  @@index([createdAt])
+  @@map("tickets")
+}
+
+enum TicketPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum TicketStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  PENDING
+  RESOLVED
+  CLOSED
+  CANCELLED
+}
+
+enum SLAStatus {
+  ON_TIME
+  AT_RISK
+  BREACHED
+}
+
+model TicketComment {
+  id          String    @id @default(uuid())
+  ticketId    String
+  userId      String
+  comment     String
+  isInternal  Boolean   @default(false)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  ticket      Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  @@index([ticketId])
+  @@map("ticket_comments")
+}
+
+model TicketHistory {
+  id          String    @id @default(uuid())
+  ticketId    String
+  userId      String?
+  action      String
+  fieldName   String?
+  oldValue    String?
+  newValue    String?
+  
+  createdAt   DateTime  @default(now())
+  
+  ticket      Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  @@index([ticketId])
+  @@map("ticket_history")
+}
+
+// ============================================
+// NOTIFICATION SYSTEM
+// ============================================
+
+model Notification {
+  id          String              @id @default(uuid())
+  userId      String
+  alertId     String?
+  
+  type        NotificationType
+  channel     NotificationChannel
+  title       String
+  message     String
+  
+  status      NotificationStatus  @default(PENDING)
+  sentAt      DateTime?
+  readAt      DateTime?
+  
+  metadata    Json?
+  
+  createdAt   DateTime            @default(now())
+  
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alert       AnomalyAlert?       @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([status])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  ALERT
+  TICKET_ASSIGNED
+  TICKET_UPDATED
+  TICKET_RESOLVED
+  SYSTEM
+}
+
+enum NotificationChannel {
+  EMAIL
+  IN_APP
+  WEBHOOK
+  SMS
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  READ
+}
+
+// ============================================
+// CHATBOT / LLM INTEGRATION
+// ============================================
+
+model ChatLog {
+  id          String    @id @default(uuid())
+  userId      String
+  sessionId   String
+  question    String
+  response    String
+  intent      String?
+  confidence  Float?
+  
+  createdAt   DateTime  @default(now())
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([sessionId])
+  @@map("chat_logs")
+}
+
+// ============================================
+// SYSTEM CONFIGURATION
+// ============================================
+
+model SystemConfig {
+  id          String    @id @default(uuid())
+  key         String    @unique
+  value       String
+  description String?
+  category    String?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("system_configs")
+}
+
+// ============================================
+// AUDIT LOG
+// ============================================
+
+model AuditLog {
+  id          String    @id @default(uuid())
+  userId      String?
+  action      String
+  entity      String
+  entityId    String?
+  changes     Json?
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
