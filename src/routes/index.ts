@@ -6,6 +6,7 @@ import siteRoutes from './site.routes';
 import powerUsageRoutes from './powerUsage.routes';
 import notificationRoutes from './notification.routes';
 import dashboardRoutes from './dashboard.routes';
+import anomalyRoutes from './anomaly.routes';
 
 const router = Router();
 
@@ -17,5 +18,6 @@ router.use('/tickets', ticketRoutes);
 router.use('/sites', siteRoutes);
 router.use('/power-usage', powerUsageRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/anomalies', anomalyRoutes);
 
 export default router;

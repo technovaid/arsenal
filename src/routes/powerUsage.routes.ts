@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middlewares/auth';
+import { powerUsageController } from '../controllers/powerUsage.controller';
 
 const router = Router();
 
@@ -17,12 +18,10 @@ router.get('/', (_req, res) => {
 
 /**
  * @route   GET /api/v1/power-usage/:siteId
- * @desc    Get power usage by site
+ * @desc    Get power usage history for a site (for charts)
  * @access  Private
  */
-router.get('/:siteId', (_req, res) => {
-  res.json({ message: 'Get power usage by site - To be implemented' });
-});
+router.get('/:siteId', powerUsageController.getSitePowerUsage.bind(powerUsageController));
 
 /**
  * @route   POST /api/v1/power-usage

@@ -793,4 +793,312 @@ export const swaggerPaths = {
       },
     },
   },
+  '/api/v1/sites': {
+    get: {
+      tags: ['Sites'],
+      summary: 'Get sites with filtering and pagination',
+      description: 'Returns paginated list of sites with optional filtering by search, region, cluster, and period',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { in: 'query', name: 'search', schema: { type: 'string' }, description: 'Search by site ID or name' },
+        { in: 'query', name: 'region', schema: { type: 'string' }, description: 'Filter by region' },
+        { in: 'query', name: 'cluster', schema: { type: 'string' }, description: 'Filter by cluster (High Consumption, Efficient)' },
+        { in: 'query', name: 'period', schema: { type: 'string', enum: ['monthly', 'quarterly', 'yearly'] }, description: 'Period filter' },
+        { in: 'query', name: 'page', schema: { type: 'integer', default: 1 }, description: 'Page number' },
+        { in: 'query', name: 'limit', schema: { type: 'integer', default: 10 }, description: 'Items per page' },
+      ],
+      responses: {
+        '200': {
+          description: 'Paginated list of sites',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      data: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string', example: '1' },
+                            siteId: { type: 'string', example: 'SITE-001-JKT' },
+                            region: { type: 'string', example: 'Jakarta' },
+                            type: { type: 'string', enum: ['AMR', 'NON-AMR'], example: 'AMR' },
+                            consumption: { type: 'number', example: 4606 },
+                            monthlyBill: { type: 'number', example: 9000000 },
+                            anomalyStatus: { type: 'string', enum: ['Normal', 'Medium', 'High', 'Critical'], example: 'Normal' },
+                            cluster: { type: 'string', example: 'High Consumption' },
+                            efficiency: { type: 'number', example: 76.1 },
+                            costPerKwh: { type: 'number', example: 1864 },
+                            deviation: { type: 'number', example: 12 },
+                            lastUpdated: { type: 'string', example: '2025-10-15' },
+                          },
+                        },
+                      },
+                      pagination: {
+                        type: 'object',
+                        properties: {
+                          total: { type: 'integer', example: 40000 },
+                          page: { type: 'integer', example: 1 },
+                          limit: { type: 'integer', example: 10 },
+                          totalPages: { type: 'integer', example: 4000 },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
+  '/api/v1/sites/regions': {
+    get: {
+      tags: ['Sites'],
+      summary: 'Get available regions',
+      description: 'Returns list of available regions for filtering',
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': {
+          description: 'List of regions',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      data: { type: 'array', items: { type: 'string' }, example: ['Jakarta', 'Bandung', 'Surabaya'] },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
+  '/api/v1/sites/{siteId}/detail': {
+    get: {
+      tags: ['Sites'],
+      summary: 'Get site detail',
+      description: 'Returns detailed information about a specific site including profile, technical specs, clusters, and predictions',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { in: 'path', name: 'siteId', required: true, schema: { type: 'string' }, description: 'Site ID' },
+      ],
+      responses: {
+        '200': {
+          description: 'Site detail data',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      profile: {
+                        type: 'object',
+                        properties: {
+                          siteId: { type: 'string', example: 'SITE-001-JKT' },
+                          type: { type: 'string', enum: ['AMR', 'NON-AMR'] },
+                          cluster: { type: 'string', example: 'High Consumption' },
+                          efficiency: { type: 'number', example: 76.1 },
+                          costPerKwh: { type: 'number', example: 1864 },
+                          monthlyConsumption: { type: 'number', example: 4606 },
+                          monthlyBill: { type: 'number', example: 9000000 },
+                          clusterAverage: { type: 'number', example: 8100000 },
+                          deviation: { type: 'number', example: 12 },
+                          anomalyStatus: { type: 'string', enum: ['Normal', 'Medium', 'High', 'Critical'] },
+                        },
+                      },
+                      technicalProfile: {
+                        type: 'object',
+                        properties: {
+                          rectifierCapacity: { type: 'string', example: '48V/200A' },
+                          acUnits: { type: 'string', example: '2 x 2PK' },
+                          topology: { type: 'string', example: 'Indoor' },
+                          generatorCapacity: { type: 'string', example: '15 kVA' },
+                          height: { type: 'string', example: '25m' },
+                          climateZone: { type: 'string', example: 'Tropical' },
+                          location: { type: 'string', example: 'Jakarta' },
+                          plnTariff: { type: 'string', example: 'B2/TR' },
+                        },
+                      },
+                      clusters: { type: 'array', items: { type: 'object' } },
+                      nextMonthEstimate: { type: 'object' },
+                      predictionStats: { type: 'object' },
+                      consumptionPrediction: { type: 'object' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+        '404': { description: 'Site not found' },
+      },
+    },
+  },
+  '/api/v1/power-usage/{siteId}': {
+    get: {
+      tags: ['Power Usage'],
+      summary: 'Get site power usage history',
+      description: 'Returns power usage history for charts (cost and consumption prediction vs actual)',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { in: 'path', name: 'siteId', required: true, schema: { type: 'string' }, description: 'Site ID' },
+        { in: 'query', name: 'period', schema: { type: 'integer', default: 6 }, description: 'Number of months' },
+      ],
+      responses: {
+        '200': {
+          description: 'Power usage chart data',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      costChart: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            month: { type: 'string', example: 'Jan' },
+                            predicted: { type: 'number', example: 28000 },
+                            actual: { type: 'number', example: 30000 },
+                          },
+                        },
+                      },
+                      consumptionChart: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            month: { type: 'string', example: 'Jan' },
+                            predicted: { type: 'number', example: 18000 },
+                            actual: { type: 'number', example: 19500 },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
+  '/api/v1/anomalies/summary': {
+    get: {
+      tags: ['Anomalies'],
+      summary: 'Get anomaly summary counts',
+      description: 'Returns count of anomalies grouped by severity (critical, high, medium)',
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': {
+          description: 'Anomaly summary counts',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      critical: { type: 'integer', example: 23 },
+                      high: { type: 'integer', example: 67 },
+                      medium: { type: 'integer', example: 66 },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
+  '/api/v1/anomalies': {
+    get: {
+      tags: ['Anomalies'],
+      summary: 'Get anomaly list',
+      description: 'Returns paginated list of anomalies with optional filtering by severity and siteId',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { in: 'query', name: 'severity', schema: { type: 'string' }, description: 'Filter by severity (comma-separated: critical,high,medium)' },
+        { in: 'query', name: 'siteId', schema: { type: 'string' }, description: 'Filter by site ID' },
+        { in: 'query', name: 'page', schema: { type: 'integer', default: 1 }, description: 'Page number' },
+        { in: 'query', name: 'limit', schema: { type: 'integer', default: 10 }, description: 'Items per page' },
+      ],
+      responses: {
+        '200': {
+          description: 'Paginated list of anomalies',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      data: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string', example: '1' },
+                            siteId: { type: 'string', example: 'SITE-012-JKT' },
+                            severity: { type: 'string', enum: ['Critical', 'High', 'Medium'], example: 'Critical' },
+                            type: { type: 'string', example: 'Consumption Spike' },
+                            deviation: { type: 'string', example: '+28.5%' },
+                            estimatedCost: { type: 'number', example: 4200000 },
+                            status: { type: 'string', example: 'Perlu Tindakan' },
+                            timestamp: { type: 'string', example: '2 hours ago' },
+                          },
+                        },
+                      },
+                      pagination: {
+                        type: 'object',
+                        properties: {
+                          total: { type: 'integer', example: 156 },
+                          page: { type: 'integer', example: 1 },
+                          limit: { type: 'integer', example: 10 },
+                          totalPages: { type: 'integer', example: 16 },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
 };

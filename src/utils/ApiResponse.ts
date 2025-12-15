@@ -18,6 +18,14 @@ export class ApiResponse {
     return res.status(204).send();
   }
 
+  static error(res: Response, message: string, statusCode = 400) {
+    return res.status(statusCode).json({
+      success: false,
+      message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   static paginated(
     res: Response,
     data: any[],

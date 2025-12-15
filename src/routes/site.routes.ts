@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middlewares/auth';
+import { siteController } from '../controllers/site.controller';
 
 const router = Router();
 
@@ -8,21 +9,24 @@ router.use(authenticate);
 
 /**
  * @route   GET /api/v1/sites
- * @desc    Get all sites
+ * @desc    Get sites with filtering and pagination
  * @access  Private
  */
-router.get('/', (_req, res) => {
-  res.json({ message: 'Get all sites - To be implemented' });
-});
+router.get('/', siteController.getSites.bind(siteController));
 
 /**
- * @route   GET /api/v1/sites/:id
- * @desc    Get site by ID
+ * @route   GET /api/v1/sites/regions
+ * @desc    Get available regions
  * @access  Private
  */
-router.get('/:id', (_req, res) => {
-  res.json({ message: 'Get site by ID - To be implemented' });
-});
+router.get('/regions', siteController.getRegions.bind(siteController));
+
+/**
+ * @route   GET /api/v1/sites/:siteId/detail
+ * @desc    Get site detail by siteId
+ * @access  Private
+ */
+router.get('/:siteId/detail', siteController.getSiteDetail.bind(siteController));
 
 /**
  * @route   POST /api/v1/sites
