@@ -285,6 +285,10 @@ Semua error menggunakan format standar:
         description: 'User authentication and authorization endpoints',
       },
       {
+        name: 'Dashboard',
+        description: 'Executive dashboard data endpoints for summary, charts, and anomalies',
+      },
+      {
         name: 'Alerts',
         description: 'Alert management endpoints',
       },

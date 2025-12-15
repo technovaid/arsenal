@@ -5,11 +5,13 @@ import ticketRoutes from './ticket.routes';
 import siteRoutes from './site.routes';
 import powerUsageRoutes from './powerUsage.routes';
 import notificationRoutes from './notification.routes';
+import dashboardRoutes from './dashboard.routes';
 
 const router = Router();
 
 // API Routes
 router.use('/auth', authRoutes);
+router.use('/dashboard', dashboardRoutes);
 router.use('/alerts', alertRoutes);
 router.use('/tickets', ticketRoutes);
 router.use('/sites', siteRoutes);

@@ -507,4 +507,290 @@ export const swaggerPaths = {
       },
     },
   },
+  '/api/v1/dashboard/summary': {
+    get: {
+      tags: ['Dashboard'],
+      summary: 'Get dashboard summary statistics',
+      description: 'Returns energy efficiency, problematic sites count, and backup status for the executive dashboard',
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': {
+          description: 'Dashboard summary data',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      energyEfficiency: {
+                        type: 'object',
+                        properties: {
+                          value: { type: 'number', example: 87.5 },
+                          trend: { type: 'string', example: '+2.3%' },
+                        },
+                      },
+                      problematicSites: {
+                        type: 'object',
+                        properties: {
+                          total: { type: 'integer', example: 12 },
+                          high: { type: 'integer', example: 3 },
+                          medium: { type: 'integer', example: 9 },
+                        },
+                      },
+                      backupStatus: {
+                        type: 'object',
+                        properties: {
+                          total: { type: 'integer', example: 96 },
+                          healthy: { type: 'integer', example: 89 },
+                          atRisk: { type: 'integer', example: 7 },
+                          reliability: { type: 'number', example: 92.7 },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
+  '/api/v1/dashboard/consumption': {
+    get: {
+      tags: ['Dashboard'],
+      summary: 'Get consumption data for chart',
+      description: 'Returns consumption data with bar chart (by region), line chart (by month), and summary statistics',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          in: 'query',
+          name: 'period',
+          schema: { type: 'integer', default: 6 },
+          description: 'Number of months to fetch (1, 3, or 6)',
+        },
+        {
+          in: 'query',
+          name: 'siteId',
+          schema: { type: 'string' },
+          description: 'Filter by site ID (partial match)',
+        },
+        {
+          in: 'query',
+          name: 'region',
+          schema: { type: 'string' },
+          description: 'Filter by region name',
+        },
+      ],
+      responses: {
+        '200': {
+          description: 'Consumption chart data',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      labels: { type: 'array', items: { type: 'string' } },
+                      datasets: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            label: { type: 'string' },
+                            data: { type: 'array', items: { type: 'number' } },
+                          },
+                        },
+                      },
+                      summary: {
+                        type: 'object',
+                        properties: {
+                          avgConsumption: { type: 'number', example: 8350000 },
+                          avgBilling: { type: 'number', example: 9030000000 },
+                          totalConsumption: { type: 'number', example: 50100000 },
+                          totalBilling: { type: 'number', example: 54180000000 },
+                        },
+                      },
+                      barChartData: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            region: { type: 'string', example: 'Jakarta' },
+                            tagihan: { type: 'number', example: 50 },
+                            konsumsi: { type: 'number', example: 70 },
+                          },
+                        },
+                      },
+                      lineChartData: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            month: { type: 'string', example: 'Jan' },
+                            tagihan: { type: 'number', example: 1800 },
+                            konsumsi: { type: 'number', example: 2500000 },
+                          },
+                        },
+                      },
+                      regions: { type: 'array', items: { type: 'string' }, example: ['Jakarta', 'Bandung', 'Surabaya'] },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
+  '/api/v1/dashboard/heatmap': {
+    get: {
+      tags: ['Dashboard'],
+      summary: 'Get heatmap data for sites',
+      description: 'Returns full site data with coordinates for heatmap visualization including efficiency, consumption, and cost',
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': {
+          description: 'Heatmap data',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      data: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string', example: 'SITE-001-JAKARTA' },
+                            name: { type: 'string', example: 'Jakarta Central' },
+                            city: { type: 'string', example: 'Jakarta' },
+                            region: { type: 'string', example: 'DKI Jakarta' },
+                            type: { type: 'string', example: 'NON-AMR' },
+                            cluster: { type: 'string', example: 'High Consumption' },
+                            efficiency: { type: 'string', example: 'Medium 72%' },
+                            ISR: { type: 'string', example: '001-2025-J' },
+                            consumption: { type: 'string', example: '3150 kWh' },
+                            cost: { type: 'string', example: 'Rp4.725.000' },
+                            coordinates: { type: 'array', items: { type: 'number' }, example: [106.8456, -6.2088] },
+                            status: { type: 'string', enum: ['critical', 'high', 'medium', 'low', 'efficient'], example: 'critical' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
+  '/api/v1/dashboard/ticket-status': {
+    get: {
+      tags: ['Dashboard'],
+      summary: 'Get ticket status distribution',
+      description: 'Returns ticket count grouped by priority for pie chart visualization',
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': {
+          description: 'Ticket status distribution',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      data: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            name: { type: 'string', example: 'Critical' },
+                            value: { type: 'integer', example: 3 },
+                            color: { type: 'string', example: '#EF4444' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
+  '/api/v1/dashboard/anomalies': {
+    get: {
+      tags: ['Dashboard'],
+      summary: 'Get recent anomalies',
+      description: 'Returns list of recent anomalies for the dashboard table',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          in: 'query',
+          name: 'limit',
+          schema: { type: 'integer', default: 10 },
+          description: 'Number of anomalies to return',
+        },
+      ],
+      responses: {
+        '200': {
+          description: 'List of recent anomalies',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      data: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string', format: 'uuid' },
+                            site: { type: 'string', example: 'Site-001-Jakarta' },
+                            type: { type: 'string', example: 'High Consumption' },
+                            severity: { type: 'string', enum: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'] },
+                            detail: { type: 'string', example: '165% above normal' },
+                            time: { type: 'string', example: '2 hours ago' },
+                            status: { type: 'string', example: 'Active' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
 };
