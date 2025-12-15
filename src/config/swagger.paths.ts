@@ -1312,4 +1312,232 @@ export const swaggerPaths = {
       },
     },
   },
+  '/api/v1/power-backup': {
+    get: {
+      tags: ['Power Backup'],
+      summary: 'Get power backup sites with filtering and pagination',
+      description: 'Returns paginated list of power backup sites with optional filtering by search, region, and tier',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { in: 'query', name: 'search', schema: { type: 'string' }, description: 'Search by site ID' },
+        { in: 'query', name: 'region', schema: { type: 'string' }, description: 'Filter by region' },
+        { in: 'query', name: 'tier', schema: { type: 'string', enum: ['Platinum', 'Gold', 'Silver', 'Bronze'] }, description: 'Filter by tier' },
+        { in: 'query', name: 'page', schema: { type: 'integer', default: 1 }, description: 'Page number' },
+        { in: 'query', name: 'limit', schema: { type: 'integer', default: 10 }, description: 'Items per page' },
+      ],
+      responses: {
+        '200': {
+          description: 'Paginated list of power backup sites',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string', example: 'SITE-001-JKT' },
+                        siteId: { type: 'string', example: 'SITE-001-JKT' },
+                        region: { type: 'string', example: 'Jakarta' },
+                        tier: { type: 'string', enum: ['Platinum', 'Gold', 'Silver', 'Bronze'] },
+                        capacity: { type: 'string', example: '10 kWh / 3h' },
+                        lastOutage: { type: 'string', example: '5h ago' },
+                        duration: { type: 'string', example: '2.5h' },
+                        alarmCount: { type: 'integer', example: 7 },
+                        risk: { type: 'string', enum: ['Critical', 'High', 'Medium', 'Normal'] },
+                        position: { type: 'array', items: { type: 'number' }, example: [-6.2088, 106.8456] },
+                        downtimeRisk: { type: 'string', example: 'Normal' },
+                        backupCapacity: { type: 'string', example: '9.9h' },
+                        batteryStatus: { type: 'string', example: 'Online' },
+                        warranty: { type: 'string', example: 'Level 2' },
+                      },
+                    },
+                  },
+                  pagination: {
+                    type: 'object',
+                    properties: {
+                      total: { type: 'integer', example: 40000 },
+                      page: { type: 'integer', example: 1 },
+                      limit: { type: 'integer', example: 10 },
+                      totalPages: { type: 'integer', example: 4000 },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
+  '/api/v1/power-backup/regions': {
+    get: {
+      tags: ['Power Backup'],
+      summary: 'Get available regions',
+      description: 'Returns list of available regions for filtering',
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': {
+          description: 'List of regions',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      data: { type: 'array', items: { type: 'string' }, example: ['Jakarta', 'Bandung', 'Surabaya'] },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
+  '/api/v1/power-backup/{siteId}': {
+    get: {
+      tags: ['Power Backup'],
+      summary: 'Get power backup site detail',
+      description: 'Returns detailed power backup information for a specific site',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { in: 'path', name: 'siteId', required: true, schema: { type: 'string' }, description: 'Site ID' },
+      ],
+      responses: {
+        '200': {
+          description: 'Power backup site detail',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: { type: 'object' },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+        '404': { description: 'Site not found' },
+      },
+    },
+  },
+  '/api/v1/power-backup/{siteId}/power-analysis': {
+    get: {
+      tags: ['Power Backup'],
+      summary: 'Get power analysis data',
+      description: 'Returns hourly power consumption and backup analysis data for a site',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { in: 'path', name: 'siteId', required: true, schema: { type: 'string' }, description: 'Site ID' },
+      ],
+      responses: {
+        '200': {
+          description: 'Power analysis data',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      hourlyData: { type: 'array', items: { type: 'object' } },
+                      avgConsumption: { type: 'string', example: '55.6 kWh' },
+                      backupCapacity: { type: 'string', example: '9.9h' },
+                      predictedNeed: { type: 'string', example: '7.5h' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
+  '/api/v1/power-backup/{siteId}/outage-history': {
+    get: {
+      tags: ['Power Backup'],
+      summary: 'Get outage history',
+      description: 'Returns 12-month outage history for a site',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { in: 'path', name: 'siteId', required: true, schema: { type: 'string' }, description: 'Site ID' },
+      ],
+      responses: {
+        '200': {
+          description: 'Outage history data',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      monthlyData: { type: 'array', items: { type: 'object' } },
+                      monthlyAverage: { type: 'integer', example: 5 },
+                      avgTime: { type: 'string', example: '1.5h' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
+  '/api/v1/power-backup/{siteId}/battery-health': {
+    get: {
+      tags: ['Power Backup'],
+      summary: 'Get battery health trend',
+      description: 'Returns 30-day battery health trend for a site',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { in: 'path', name: 'siteId', required: true, schema: { type: 'string' }, description: 'Site ID' },
+      ],
+      responses: {
+        '200': {
+          description: 'Battery health data',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      dailyData: { type: 'array', items: { type: 'object' } },
+                      currentHealth: { type: 'string', example: '34%' },
+                      avgTemperature: { type: 'string', example: '28.0°C' },
+                      chargeCycles: { type: 'integer', example: 245 },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
 };
