@@ -1101,4 +1101,215 @@ export const swaggerPaths = {
       },
     },
   },
+  '/api/v1/settlements': {
+    get: {
+      tags: ['Settlements'],
+      summary: 'Get settlements with filtering and pagination',
+      description: 'Returns paginated list of settlements with optional filtering by search, region, and condition',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { in: 'query', name: 'search', schema: { type: 'string' }, description: 'Search by site ID' },
+        { in: 'query', name: 'region', schema: { type: 'string' }, description: 'Filter by region' },
+        { in: 'query', name: 'condition', schema: { type: 'string', enum: ['mismatch', 'frequency', 'capacity', 'normal'] }, description: 'Filter by condition type' },
+        { in: 'query', name: 'page', schema: { type: 'integer', default: 1 }, description: 'Page number' },
+        { in: 'query', name: 'limit', schema: { type: 'integer', default: 10 }, description: 'Items per page' },
+      ],
+      responses: {
+        '200': {
+          description: 'Paginated list of settlements',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        siteId: { type: 'string', example: 'SITE-001-JKT' },
+                        region: { type: 'string', example: 'Jakarta' },
+                        isr: { type: 'string', example: 'ISR-67537402-0 005' },
+                        status: { type: 'string', enum: ['Active', 'Inactive'] },
+                        statusDays: { type: 'string', example: '43 hari' },
+                        fsrValue: { type: 'number', example: 19.20 },
+                        nmsValue: { type: 'number', example: 19.20 },
+                        licensedCapacity: { type: 'string', example: '12 kWh' },
+                        actualCapacity: { type: 'string', example: '12 kWh' },
+                        condition: { type: 'string', example: 'Site Status Mismatch' },
+                        conditionType: { type: 'string', enum: ['mismatch', 'frequency', 'capacity', 'normal'] },
+                        isActive: { type: 'boolean' },
+                      },
+                    },
+                  },
+                  pagination: {
+                    type: 'object',
+                    properties: {
+                      total: { type: 'integer', example: 40000 },
+                      page: { type: 'integer', example: 1 },
+                      limit: { type: 'integer', example: 10 },
+                      totalPages: { type: 'integer', example: 4000 },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
+  '/api/v1/settlements/summary': {
+    get: {
+      tags: ['Settlements'],
+      summary: 'Get settlement summary counts',
+      description: 'Returns count of settlements grouped by condition type (mismatch types)',
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': {
+          description: 'Settlement summary counts',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      siteMismatch: { type: 'integer', example: 8 },
+                      frequencyMismatch: { type: 'integer', example: 7 },
+                      capacityMismatch: { type: 'integer', example: 12 },
+                      total: { type: 'integer', example: 27 },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
+  '/api/v1/settlements/regions': {
+    get: {
+      tags: ['Settlements'],
+      summary: 'Get available regions',
+      description: 'Returns list of available regions for filtering',
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': {
+          description: 'List of regions',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      data: { type: 'array', items: { type: 'string' }, example: ['Jakarta', 'Bandung', 'Surabaya'] },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
+  '/api/v1/settlements/{siteId}': {
+    get: {
+      tags: ['Settlements'],
+      summary: 'Get settlement detail',
+      description: 'Returns detailed settlement information for a specific site including ISR, NMS, network, device, and NDM data',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { in: 'path', name: 'siteId', required: true, schema: { type: 'string' }, description: 'Site ID' },
+      ],
+      responses: {
+        '200': {
+          description: 'Settlement detail data',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      siteId: { type: 'string' },
+                      isrData: { type: 'object' },
+                      nmsData: { type: 'object' },
+                      networkData: { type: 'object' },
+                      deviceData: { type: 'object' },
+                      ndmData: { type: 'object' },
+                      condition: { type: 'string' },
+                      conditionType: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+        '404': { description: 'Settlement not found' },
+      },
+    },
+  },
+  '/api/v1/settlements/{siteId}/work-orders': {
+    get: {
+      tags: ['Settlements'],
+      summary: 'Get work orders for a site',
+      description: 'Returns list of historical work orders for a specific site',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { in: 'path', name: 'siteId', required: true, schema: { type: 'string' }, description: 'Site ID' },
+      ],
+      responses: {
+        '200': {
+          description: 'List of work orders',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      data: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            no: { type: 'integer', example: 1 },
+                            orderNum: { type: 'string', example: 'WO-1092' },
+                            desc: { type: 'string', example: 'Maintenance Kabel' },
+                            technician: { type: 'string', example: 'Budi' },
+                            date: { type: 'string', example: '12 Sep 2025' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
 };
