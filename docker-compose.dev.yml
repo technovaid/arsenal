@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: arsenal-postgres-dev
+    environment:
+      POSTGRES_USER: arsenal
+      POSTGRES_PASSWORD: arsenal123
+      POSTGRES_DB: arsenal_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - arsenal-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: arsenal-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - arsenal-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: arsenal-backend-dev
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://arsenal:arsenal123@postgres:5432/arsenal_db?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: dev-secret
+      JWT_REFRESH_SECRET: dev-refresh-secret
+      CORS_ORIGIN: "*"
+      LOG_LEVEL: debug
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - arsenal-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  arsenal-network:
+    driver: bridge

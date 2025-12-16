@@ -1,0 +1,29 @@
+# Node
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Build output
+dist
+coverage
+
+# Environment & secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile.dev
+docker-compose*.yml
+
+# Logs
+logs
+*.log
+
+# OS
+.DS_Store
