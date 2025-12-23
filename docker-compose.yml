@@ -31,9 +31,7 @@ services:
 
   # Backend API
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ariefmr/arsenal-backend:1.0.0
     container_name: arsenal-backend
     restart: unless-stopped
     ports:

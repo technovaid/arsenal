@@ -7,6 +7,12 @@ yarn-error.log
 dist
 coverage
 
+# Tests & docs
+test
+tests
+__tests__
+docs
+
 # Environment & secrets
 .env
 .env.*
@@ -18,12 +24,13 @@ coverage
 .gitignore
 
 # Docker
-Dockerfile.dev
 docker-compose*.yml
 
 # Logs
 logs
 *.log
 
-# OS
+# Editor / OS
+.vscode
+.idea
 .DS_Store
