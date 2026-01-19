@@ -79,7 +79,16 @@ class AuthService {
       throw ApiError.forbidden('User account is inactive');
     }
 
+    // Check if user registered via OAuth
+    if (user.provider && user.provider !== 'local') {
+      throw ApiError.badRequest(`This account uses ${user.provider} authentication. Please sign in with ${user.provider}.`);
+    }
+
     // Verify password
+    if (!user.password) {
+      throw ApiError.unauthorized('Invalid credentials');
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {

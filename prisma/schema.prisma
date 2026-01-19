@@ -18,10 +18,15 @@ model User {
   id            String    @id @default(uuid())
   email         String    @unique
   name          String
-  password      String
+  password      String?
   role          UserRole  @default(VIEWER)
   isActive      Boolean   @default(true)
   lastLogin     DateTime?
+  
+  provider      String?   @default("local")
+  providerId    String?
+  providerData  Json?
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
@@ -29,6 +34,7 @@ model User {
   chatLogs      ChatLog[]
   notifications Notification[]
   
+  @@unique([provider, providerId])
   @@map("users")
 }
 

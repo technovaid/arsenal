@@ -8,13 +8,19 @@ const router = Router();
 router.use(authenticate);
 
 /**
- * @route   GET /api/v1/power-usage
- * @desc    Get power usage data
+ * @route   GET /api/v1/power-usage/sites
+ * @desc    Get power usage sites with filtering
  * @access  Private
+ * @query   search - search by siteId or siteName
+ * @query   region - filter by region
+ * @query   nop - filter by NOP
+ * @query   regency - filter by regency
+ * @query   powerRange - filter by power range (< 53.000 VA | ≥ 53.000 VA)
+ * @query   payloadLevel - filter by payload level (Low | Medium | High)
+ * @query   outlierType - filter by outlier type (Valid | Over | Under)
+ * @query   period - filter by period (Last 3 Months | Last 6 Months | Last 12 Months)
  */
-router.get('/', (_req, res) => {
-  res.json({ message: 'Get power usage - To be implemented' });
-});
+router.get('/sites', powerUsageController.getPowerUsageSites.bind(powerUsageController));
 
 /**
  * @route   GET /api/v1/power-usage/:siteId

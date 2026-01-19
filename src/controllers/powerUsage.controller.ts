@@ -5,6 +5,31 @@ import { ApiResponse } from '../utils/ApiResponse';
 
 export class PowerUsageController {
   /**
+   * Get power usage sites with filtering
+   */
+  async getPowerUsageSites(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { search, region, nop, regency, powerRange, payloadLevel, outlierType, period } = req.query;
+
+      const params = {
+        search: search as string,
+        region: region as string,
+        nop: nop as string,
+        regency: regency as string,
+        powerRange: powerRange as string,
+        payloadLevel: payloadLevel as string,
+        outlierType: outlierType as string,
+        period: period as string,
+      };
+
+      const result = await powerUsageService.getPowerUsageSites(params);
+      return ApiResponse.success(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Get power usage history for a site
    */
   async getSitePowerUsage(req: AuthRequest, res: Response, next: NextFunction) {

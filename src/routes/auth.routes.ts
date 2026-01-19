@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
 import { authController } from '../controllers/auth.controller';
+import { oauthController } from '../controllers/oauth.controller';
 import { authenticate } from '../middlewares/auth';
 import { validate } from '../middlewares/validator';
 
@@ -112,6 +113,26 @@ router.post(
       .withMessage('New password must be at least 8 characters'),
   ]),
   authController.changePassword
+);
+
+/**
+ * @route   GET /api/v1/auth/oauth/azure/authorize
+ * @desc    Get Azure AD authorization URL
+ * @access  Public
+ */
+router.get('/oauth/azure/authorize', oauthController.getAzureAuthUrl);
+
+/**
+ * @route   POST /api/v1/auth/oauth/azure/callback
+ * @desc    Handle Azure AD OAuth callback
+ * @access  Public
+ */
+router.post(
+  '/oauth/azure/callback',
+  validate([
+    body('code').notEmpty().withMessage('Authorization code is required'),
+  ]),
+  oauthController.handleAzureCallback
 );
 
 export default router;
