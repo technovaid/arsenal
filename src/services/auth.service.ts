@@ -167,6 +167,11 @@ class AuthService {
       throw ApiError.notFound('User not found');
     }
 
+    // Check if user has password (OAuth users don't have passwords)
+    if (!user.password) {
+      throw ApiError.badRequest('Cannot change password for OAuth users');
+    }
+
     // Verify old password
     const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
 

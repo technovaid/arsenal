@@ -4,7 +4,7 @@ import prisma from '../config/database';
 import { ApiError } from '../utils/ApiError';
 import { UserRole } from '@prisma/client';
 import jwt from 'jsonwebtoken';
-import { logger } from '../utils/logger';
+import logger from '../utils/logger';
 
 interface AzureUserInfo {
   id: string;
@@ -176,7 +176,7 @@ class OAuthService {
       process.env.JWT_SECRET!,
       {
         expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-      }
+      } as jwt.SignOptions
     );
   }
 
@@ -192,7 +192,7 @@ class OAuthService {
       process.env.JWT_REFRESH_SECRET!,
       {
         expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
-      }
+      } as jwt.SignOptions
     );
   }
 }

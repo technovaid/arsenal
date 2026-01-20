@@ -31,7 +31,7 @@ services:
 
   # Backend API
   backend:
-    image: ariefmr/arsenal-backend:1.0.0
+    image: arsenal-backend:latest
     container_name: arsenal-backend
     restart: unless-stopped
     ports:
