@@ -17,6 +17,16 @@ export interface LoginInput {
   password: string;
 }
 
+export interface AzureLoginInput {
+  azureUser: {
+    id: string;
+    displayName: string;
+    mail: string;
+    userPrincipalName: string;
+  };
+  azureAccessToken: string;
+}
+
 class AuthService {
   /**
    * Register new user
@@ -144,6 +154,68 @@ class AuthService {
     } catch (error) {
       throw ApiError.unauthorized('Invalid refresh token');
     }
+  }
+
+  /**
+   * Azure AD login
+   */
+  async azureLogin(data: AzureLoginInput) {
+    const { azureUser, azureAccessToken } = data;
+    const email = azureUser.mail || azureUser.userPrincipalName;
+
+    if (!email) {
+      throw ApiError.badRequest('Email not found in Azure user data');
+    }
+
+    // Find or create user
+    let user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (user) {
+      // Update existing user
+      if (!user.isActive) {
+        throw ApiError.forbidden('User account is inactive');
+      }
+
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          lastLogin: new Date(),
+          name: azureUser.displayName || user.name,
+        },
+      });
+    } else {
+      // Create new user from Azure
+      user = await prisma.user.create({
+        data: {
+          email,
+          name: azureUser.displayName || email.split('@')[0],
+          password: await bcrypt.hash(Math.random().toString(36), 10), // Random password for Azure users
+          role: UserRole.VIEWER,
+          lastLogin: new Date(),
+        },
+      });
+
+      logger.info(`New user created from Azure AD: ${user.email}`);
+    }
+
+    // Generate tokens
+    const accessToken = this.generateAccessToken(user);
+    const refreshToken = this.generateRefreshToken(user);
+
+    logger.info(`User logged in via Azure AD: ${user.email}`);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+      accessToken,
+      refreshToken,
+    };
   }
 
   /**

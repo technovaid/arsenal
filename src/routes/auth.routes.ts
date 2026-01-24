@@ -98,6 +98,22 @@ router.post(
 router.get('/profile', authenticate, authController.getProfile);
 
 /**
+ * @route   POST /api/v1/auth/azure-login
+ * @desc    Azure AD login
+ * @access  Public
+ */
+router.post(
+  '/azure-login',
+  validate([
+    body('azureUser').isObject().withMessage('Azure user data is required'),
+    body('azureUser.id').notEmpty().withMessage('Azure user ID is required'),
+    body('azureUser.displayName').notEmpty().withMessage('Display name is required'),
+    body('azureAccessToken').notEmpty().withMessage('Azure access token is required'),
+  ]),
+  authController.azureLogin
+);
+
+/**
  * @route   POST /api/v1/auth/change-password
  * @desc    Change password
  * @access  Private

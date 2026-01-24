@@ -53,6 +53,18 @@ export class AuthController {
   }
 
   /**
+   * Azure AD login
+   */
+  async azureLogin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await authService.azureLogin(req.body);
+      return ApiResponse.success(res, result, 'Azure login successful');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Change password
    */
   async changePassword(req: AuthRequest, res: Response, next: NextFunction) {
