@@ -167,38 +167,32 @@ class AuthService {
       throw ApiError.badRequest('Email not found in Azure user data');
     }
 
-    // Find or create user
-    let user = await prisma.user.findUnique({
+    // Check if user exists in database
+    const user = await prisma.user.findUnique({
       where: { email },
     });
 
-    if (user) {
-      // Update existing user
-      if (!user.isActive) {
-        throw ApiError.forbidden('User account is inactive');
-      }
-
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          lastLogin: new Date(),
-          name: azureUser.displayName || user.name,
-        },
-      });
-    } else {
-      // Create new user from Azure
-      user = await prisma.user.create({
-        data: {
-          email,
-          name: azureUser.displayName || email.split('@')[0],
-          password: await bcrypt.hash(Math.random().toString(36), 10), // Random password for Azure users
-          role: UserRole.VIEWER,
-          lastLogin: new Date(),
-        },
-      });
-
-      logger.info(`New user created from Azure AD: ${user.email}`);
+    // User must exist in database to login with Microsoft
+    if (!user) {
+      logger.warn(`Azure login attempt failed: User not found in database - ${email}`);
+      throw ApiError.forbidden(
+        'Akun Anda tidak terdaftar dalam sistem. Silakan hubungi administrator untuk mendaftarkan akun Anda terlebih dahulu.'
+      );
     }
+
+    // Check if user is active
+    if (!user.isActive) {
+      throw ApiError.forbidden('User account is inactive');
+    }
+
+    // Update last login and name
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        lastLogin: new Date(),
+        name: azureUser.displayName || user.name,
+      },
+    });
 
     // Generate tokens
     const accessToken = this.generateAccessToken(user);
