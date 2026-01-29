@@ -32,7 +32,10 @@ class AuthService {
    * Register new user
    */
   async register(data: RegisterInput) {
-    const { email, name, password, role = UserRole.VIEWER } = data;
+    const { email: rawEmail, name, password, role = UserRole.VIEWER } = data;
+
+    // Normalize email to lowercase
+    const email = rawEmail.toLowerCase();
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -73,7 +76,10 @@ class AuthService {
    * Login user
    */
   async login(data: LoginInput) {
-    const { email, password } = data;
+    const { email: rawEmail, password } = data;
+
+    // Normalize email to lowercase for case-insensitive lookup
+    const email = rawEmail.toLowerCase();
 
     // Find user
     const user = await prisma.user.findUnique({
@@ -161,11 +167,14 @@ class AuthService {
    */
   async azureLogin(data: AzureLoginInput) {
     const { azureUser, azureAccessToken } = data;
-    const email = azureUser.mail || azureUser.userPrincipalName;
+    const rawEmail = azureUser.mail || azureUser.userPrincipalName;
 
-    if (!email) {
+    if (!rawEmail) {
       throw ApiError.badRequest('Email not found in Azure user data');
     }
+
+    // Normalize email to lowercase for case-insensitive lookup
+    const email = rawEmail.toLowerCase();
 
     // Check if user exists in database
     const user = await prisma.user.findUnique({
