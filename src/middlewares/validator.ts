@@ -17,6 +17,6 @@ export const validate = (validations: ValidationChain[]) => {
       message: err.msg,
     }));
 
-    throw ApiError.badRequest(JSON.stringify(extractedErrors));
+    return next(ApiError.badRequest(JSON.stringify(extractedErrors)));
   };
 };

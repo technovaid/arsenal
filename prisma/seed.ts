@@ -29,6 +29,22 @@ async function main() {
   // USERS
   // ============================================
   console.log('\n📦 Seeding Users...');
+
+  // Super Admin (only one)
+  const superAdminPassword = await bcrypt.hash('superadmin123', 10);
+  const superAdmin = await prisma.user.upsert({
+    where: { email: 'superadmin@arsenal.com' },
+    update: {},
+    create: {
+      email: 'superadmin@arsenal.com',
+      name: 'Super Admin',
+      fullname: 'Super Administrator',
+      password: superAdminPassword,
+      role: UserRole.SUPER_ADMIN,
+      isActive: true,
+    },
+  });
+  console.log('✅ Super Admin user created:', superAdmin.email);
   
   const adminPassword = await bcrypt.hash('admin123', 10);
   const admin = await prisma.user.upsert({
@@ -37,6 +53,7 @@ async function main() {
     create: {
       email: 'admin@arsenal.com',
       name: 'Admin User',
+      fullname: 'Administrator User',
       password: adminPassword,
       role: UserRole.ADMIN,
       isActive: true,
@@ -422,7 +439,7 @@ async function main() {
   const notificationStatuses = [NotificationStatus.PENDING, NotificationStatus.SENT, NotificationStatus.READ];
 
   let notificationCount = 0;
-  const allUsers = [admin, manager, analyst, ops, ...technicians];
+  const allUsers = [superAdmin, admin, manager, analyst, ops, ...technicians];
   
   for (const alert of createdAlerts.slice(0, 30)) {
     const user = randomPick(allUsers);
@@ -486,6 +503,7 @@ async function main() {
   console.log(`   - System Configs: ${configs.length}`);
   
   console.log('\n📝 Default credentials:');
+  console.log('Super Admin: superadmin@arsenal.com / superadmin123');
   console.log('Admin: admin@arsenal.com / admin123');
   console.log('Manager: manager@arsenal.com / manager123');
   console.log('Analyst: analyst@arsenal.com / analyst123');

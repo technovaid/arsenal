@@ -9,6 +9,7 @@ import dashboardRoutes from './dashboard.routes';
 import anomalyRoutes from './anomaly.routes';
 import settlementRoutes from './settlement.routes';
 import powerBackupRoutes from './powerBackup.routes';
+import userRoutes from './user.routes';
 
 const router = Router();
 
@@ -23,5 +24,6 @@ router.use('/notifications', notificationRoutes);
 router.use('/anomalies', anomalyRoutes);
 router.use('/settlements', settlementRoutes);
 router.use('/power-backup', powerBackupRoutes);
+router.use('/users', userRoutes);
 
 export default router;
