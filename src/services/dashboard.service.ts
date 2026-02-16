@@ -1,6 +1,7 @@
 import prisma from '../config/database';
 import { AlertStatus, TicketStatus, TicketPriority } from '@prisma/client';
 import logger from '../utils/logger';
+import clickhouseClient from '../config/clickhouse';
 
 interface DashboardSummary {
   energyEfficiency: {
@@ -363,101 +364,128 @@ class DashboardService {
   }
 
   /**
-   * Get heatmap data
+   * Get heatmap data from ClickHouse
    */
   async getHeatmap(): Promise<HeatmapData[]> {
+    const TARIF_PLN_PER_KWH = 1444.70;
+    
     try {
-      const sites = await prisma.site.findMany({
-        where: { isActive: true },
-        include: {
-          powerUsages: {
-            take: 1,
-            orderBy: { date: 'desc' },
-          },
-          backupPlacements: {
-            take: 1,
-            orderBy: { updatedAt: 'desc' },
-          },
-          settlements: {
-            take: 1,
-            orderBy: { createdAt: 'desc' },
-          },
-        },
+      // Query ClickHouse for latest period data with site attributes
+      const query = `
+        SELECT
+          p.site_id as siteId,
+          coalesce(s.site_name, p.site_id) as siteName,
+          coalesce(s.provinsi, 'Unknown') as provinsi,
+          coalesce(s.kabupaten_kota, 'Unknown') as kabupatenKota,
+          coalesce(s.latitude, 0) as latitude,
+          coalesce(s.longitude, 0) as longitude,
+          p.predicted_kwh as predictedKwh,
+          coalesce(p.actual_kwh, p.predicted_kwh) as actualKwh,
+          p.daya_cluster as dayaCluster
+        FROM gold.kwh_predictions_v0 p
+        LEFT JOIN gold.site_attributes s ON p.site_id = s.site_id
+        WHERE p.yearmonth = (SELECT max(yearmonth) FROM gold.kwh_predictions_v0)
+          AND s.latitude IS NOT NULL 
+          AND s.longitude IS NOT NULL
+          AND s.latitude != 0
+          AND s.longitude != 0
+        ORDER BY p.actual_kwh DESC
+        LIMIT 500
+      `;
+
+      const result = await clickhouseClient.query({
+        query,
+        format: 'JSONEachRow',
       });
 
-      const heatmapData: HeatmapData[] = sites.map((site) => {
-        const latestUsage = site.powerUsages[0];
-        const latestBackup = site.backupPlacements[0];
-        const latestSettlement = site.settlements[0];
+      const rawData = await result.json<{
+        siteId: string;
+        siteName: string;
+        provinsi: string;
+        kabupatenKota: string;
+        latitude: number;
+        longitude: number;
+        predictedKwh: number;
+        actualKwh: number;
+        dayaCluster: string;
+      }[]>();
+
+      logger.info(`Heatmap: fetched ${rawData.length} sites from ClickHouse`);
+
+      interface ClickHouseHeatmapRow {
+        siteId: string;
+        siteName: string;
+        provinsi: string;
+        kabupatenKota: string;
+        latitude: number;
+        longitude: number;
+        predictedKwh: number;
+        actualKwh: number;
+        dayaCluster: string;
+      }
+
+      const heatmapData: HeatmapData[] = rawData.map((row: ClickHouseHeatmapRow) => {
+        const predictedKwh = Number(row.predictedKwh) || 0;
+        const actualKwh = Number(row.actualKwh) || predictedKwh;
+        const deviationPct = predictedKwh > 0 ? ((actualKwh - predictedKwh) / predictedKwh) * 100 : 0;
         
-        // Calculate efficiency value
-        let efficiencyValue = 75;
+        // Calculate efficiency value (100 - abs(deviation))
+        const efficiencyValue = Math.max(0, Math.min(100, 100 - Math.abs(deviationPct)));
+        
+        // Determine status based on deviation
         let status: 'critical' | 'high' | 'medium' | 'low' | 'efficient' = 'efficient';
-
-        if (latestUsage?.deviationPercentage) {
-          efficiencyValue = Math.max(0, 100 - Math.abs(latestUsage.deviationPercentage));
-          if (latestUsage.deviationPercentage > 30) {
-            status = 'critical';
-          } else if (latestUsage.deviationPercentage > 20) {
-            status = 'high';
-          } else if (latestUsage.deviationPercentage > 10) {
-            status = 'medium';
-          } else if (latestUsage.deviationPercentage > 5) {
-            status = 'low';
-          } else {
-            status = 'efficient';
-          }
-        }
-
-        if (latestBackup?.status === 'CRITICAL') {
+        if (Math.abs(deviationPct) > 30) {
           status = 'critical';
-          efficiencyValue = Math.min(efficiencyValue, 30);
-        } else if (latestBackup?.status === 'AT_RISK') {
-          status = status === 'efficient' ? 'medium' : status;
-          efficiencyValue = Math.min(efficiencyValue, 60);
+        } else if (Math.abs(deviationPct) > 20) {
+          status = 'high';
+        } else if (Math.abs(deviationPct) > 10) {
+          status = 'medium';
+        } else if (Math.abs(deviationPct) > 5) {
+          status = 'low';
+        } else {
+          status = 'efficient';
         }
 
         // Determine cluster based on consumption
-        const consumption = latestUsage?.consumptionKwh || 0;
-        const cluster = consumption > 2500 ? 'High Consumption' : 'Efficient';
+        const cluster = actualKwh > 2500 ? 'High Consumption' : 'Efficient';
 
         // Format efficiency string
         let efficiencyLabel = 'Medium';
         if (efficiencyValue >= 80) efficiencyLabel = 'High';
         else if (efficiencyValue < 50) efficiencyLabel = 'Low';
 
-        // Determine type (AMR or NON-AMR) based on site tier or random
-        const type = site.tier === 'PLATINUM' || site.tier === 'GOLD' ? 'AMR' : 'NON-AMR';
+        // Determine type based on daya_cluster
+        const type = row.dayaCluster === 'above_53k' ? 'AMR' : 'NON-AMR';
 
-        // Extract city from site name or use region
-        const city = site.siteName.split(' ')[0] || site.region;
-
-        // Generate ISR number
-        const isr = latestSettlement?.isrNumber || `001-2025-${site.siteId.slice(-1).toUpperCase()}`;
+        // Calculate billing
+        const cost = actualKwh * TARIF_PLN_PER_KWH;
 
         // Format consumption and cost
-        const consumptionStr = `${Math.round(consumption).toLocaleString('id-ID')} kWh`;
-        const cost = latestUsage?.billingAmount || consumption * 1500;
+        const consumptionStr = `${Math.round(actualKwh).toLocaleString('id-ID')} kWh`;
         const costStr = `Rp${Math.round(cost).toLocaleString('id-ID')}`;
 
+        // Generate ISR number
+        const isr = `001-2025-${row.siteId.slice(-1).toUpperCase()}`;
+
         return {
-          id: site.siteId,
-          name: site.siteName,
-          city,
-          region: site.region,
+          id: row.siteId,
+          name: row.siteName,
+          city: row.kabupatenKota,
+          region: row.provinsi,
           type,
           cluster,
           efficiency: `${efficiencyLabel} ${Math.round(efficiencyValue)}%`,
           ISR: isr,
           consumption: consumptionStr,
           cost: costStr,
-          coordinates: [site.longitude, site.latitude] as [number, number],
+          coordinates: [Number(row.longitude), Number(row.latitude)] as [number, number],
           status,
         };
       });
 
-      // If no data, return sample data
+      // If no data from ClickHouse, return sample data
       if (heatmapData.length === 0) {
+        logger.warn('No heatmap data from ClickHouse, returning sample data');
         return [
           { id: 'SITE-001-JAKARTA', name: 'Jakarta Central', city: 'Jakarta', region: 'DKI Jakarta', type: 'NON-AMR', cluster: 'High Consumption', efficiency: 'Medium 72%', ISR: '001-2025-J', consumption: '3150 kWh', cost: 'Rp4.725.000', coordinates: [106.8456, -6.2088], status: 'critical' },
           { id: 'SITE-012-MEDAN', name: 'Medan Center', city: 'Medan', region: 'Sumatera Utara', type: 'NON-AMR', cluster: 'High Consumption', efficiency: 'Medium 65%', ISR: '001-2025-M', consumption: '2680 kWh', cost: 'Rp4.020.000', coordinates: [98.6722, 3.5952], status: 'critical' },
@@ -474,7 +502,8 @@ class DashboardService {
 
       return heatmapData;
     } catch (error) {
-      logger.error('Error getting heatmap data:', error);
+      logger.error('Error getting heatmap data from ClickHouse:', error);
+      // Return sample data on error
       return [
         { id: 'SITE-001-JAKARTA', name: 'Jakarta Central', city: 'Jakarta', region: 'DKI Jakarta', type: 'NON-AMR', cluster: 'High Consumption', efficiency: 'Medium 72%', ISR: '001-2025-J', consumption: '3150 kWh', cost: 'Rp4.725.000', coordinates: [106.8456, -6.2088], status: 'critical' },
         { id: 'SITE-033-SEMARANG', name: 'Semarang', city: 'Semarang', region: 'Jawa Tengah', type: 'NON-AMR', cluster: 'Efficient', efficiency: 'High 88%', ISR: '001-2025-S', consumption: '1720 kWh', cost: 'Rp2.580.000', coordinates: [110.4203, -6.9932], status: 'efficient' },
