@@ -1540,4 +1540,343 @@ export const swaggerPaths = {
       },
     },
   },
+
+  // Power Usage Billing Endpoints
+  '/api/v1/power-usage-billing/sites': {
+    get: {
+      tags: ['Power Usage Billing'],
+      summary: 'Get sites with power usage billing data',
+      description: 'Fetch all sites with power usage billing data from ClickHouse. Data includes predicted/actual kWh, billing calculations, deviation analysis, and anomaly status.',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          in: 'query',
+          name: 'yearmonth',
+          schema: { type: 'integer', example: 202509 },
+          description: 'Period filter in YYYYMM format (e.g., 202509 for September 2025). Defaults to latest available period.',
+        },
+        {
+          in: 'query',
+          name: 'region',
+          schema: { type: 'string', example: 'REGIONAL 1' },
+          description: 'Filter by regional',
+        },
+        {
+          in: 'query',
+          name: 'nop',
+          schema: { type: 'string' },
+          description: 'Filter by NOP',
+        },
+        {
+          in: 'query',
+          name: 'regency',
+          schema: { type: 'string' },
+          description: 'Filter by kabupaten/kota',
+        },
+        {
+          in: 'query',
+          name: 'powerRange',
+          schema: { type: 'string', enum: ['< 53.000 VA', '>= 53.000 VA'] },
+          description: 'Filter by power range',
+        },
+        {
+          in: 'query',
+          name: 'payloadLevel',
+          schema: { type: 'string', enum: ['Low', 'Medium', 'High'] },
+          description: 'Filter by payload level',
+        },
+        {
+          in: 'query',
+          name: 'outlierType',
+          schema: { type: 'string', enum: ['Valid', 'Over', 'Under'] },
+          description: 'Filter by outlier type',
+        },
+      ],
+      responses: {
+        '200': {
+          description: 'List of sites with power usage billing data',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        siteId: { type: 'string', example: 'ADL003' },
+                        siteName: { type: 'string', example: 'Site Name' },
+                        region: { type: 'string', example: 'REGIONAL 1' },
+                        nop: { type: 'string', example: 'NOP Name' },
+                        regency: { type: 'string', example: 'Kabupaten Name' },
+                        payloadLevel: { type: 'string', enum: ['Low', 'Medium', 'High'], example: 'Medium' },
+                        powerVa: { type: 'number', example: 33000 },
+                        cells: { type: 'string', example: '2 / 4 / 0' },
+                        type: { type: 'string', enum: ['AMR', 'NON-AMR'], example: 'AMR' },
+                        predictedKwh: { type: 'number', example: 4148.96 },
+                        actualKwh: { type: 'number', example: 7958 },
+                        predictedBill: { type: 'number', example: 5993456 },
+                        actualBill: { type: 'number', example: 11496243 },
+                        deviationPct: { type: 'number', example: 91.8 },
+                        outlierType: { type: 'string', enum: ['Valid', 'Over', 'Under'], example: 'Over' },
+                        anomalyStatus: { type: 'string', enum: ['Normal', 'High', 'Critical'], example: 'Critical' },
+                        lastUpdated: { type: 'string', format: 'date', example: '2025-09-01' },
+                        latitude: { type: 'number', example: -6.123456 },
+                        longitude: { type: 'number', example: 106.789012 },
+                        clusterAverageKwh: { type: 'number', example: 3500 },
+                        clusterAverageBill: { type: 'number', example: 5056450 },
+                        predictionAccuracyPct: { type: 'number', example: 8.2 },
+                        dayaCluster: { type: 'string', example: 'below_53k' },
+                        config: {
+                          type: 'object',
+                          properties: {
+                            totalPayload: { type: 'number', example: 1500 },
+                            dayaVa: { type: 'number', example: 33000 },
+                            totalVlrSubs: { type: 'number', example: 500 },
+                            siteSimpul: { type: 'boolean', example: false },
+                            active5g: { type: 'number', example: 0 },
+                            bw5g: { type: 'number', example: 0 },
+                            active4g: { type: 'number', example: 4 },
+                            bw4g: { type: 'number', example: 20 },
+                            active2g: { type: 'number', example: 2 },
+                            bw2g: { type: 'number', example: 10 },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+        '500': { $ref: '#/components/responses/InternalServerError' },
+      },
+    },
+  },
+  '/api/v1/power-usage-billing/summary': {
+    get: {
+      tags: ['Power Usage Billing'],
+      summary: 'Get summary statistics',
+      description: 'Fetch aggregated summary statistics for power usage billing including total sites, anomaly counts, and averages.',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          in: 'query',
+          name: 'yearmonth',
+          schema: { type: 'integer', example: 202509 },
+          description: 'Period filter in YYYYMM format',
+        },
+        { in: 'query', name: 'region', schema: { type: 'string' }, description: 'Filter by regional' },
+        { in: 'query', name: 'nop', schema: { type: 'string' }, description: 'Filter by NOP' },
+        { in: 'query', name: 'regency', schema: { type: 'string' }, description: 'Filter by kabupaten/kota' },
+        { in: 'query', name: 'powerRange', schema: { type: 'string' }, description: 'Filter by power range' },
+        { in: 'query', name: 'payloadLevel', schema: { type: 'string' }, description: 'Filter by payload level' },
+        { in: 'query', name: 'outlierType', schema: { type: 'string' }, description: 'Filter by outlier type' },
+      ],
+      responses: {
+        '200': {
+          description: 'Summary statistics',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      totalSites: { type: 'integer', example: 1000 },
+                      anomalySites: { type: 'integer', example: 150 },
+                      overPredictionCount: { type: 'integer', example: 80 },
+                      underPredictionCount: { type: 'integer', example: 70 },
+                      validCount: { type: 'integer', example: 850 },
+                      anomalyRate: { type: 'number', example: 15.0 },
+                      avgPredictedKwh: { type: 'number', example: 3500 },
+                      avgActualKwh: { type: 'number', example: 3650 },
+                      avgPredictedBill: { type: 'number', example: 5056450 },
+                      avgActualBill: { type: 'number', example: 5273205 },
+                      avgDeviationPct: { type: 'number', example: 4.3 },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
+  '/api/v1/power-usage-billing/periods': {
+    get: {
+      tags: ['Power Usage Billing'],
+      summary: 'Get available periods',
+      description: 'Fetch list of available yearmonth periods from ClickHouse database.',
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': {
+          description: 'List of available periods',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        yearmonth: { type: 'integer', example: 202509 },
+                        label: { type: 'string', example: 'September 2025' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
+  '/api/v1/power-usage-billing/filter-options': {
+    get: {
+      tags: ['Power Usage Billing'],
+      summary: 'Get filter options',
+      description: 'Fetch available filter options including regions, NOPs, regencies, power ranges, payload levels, and outlier types.',
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': {
+          description: 'Filter options',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      regions: { type: 'array', items: { type: 'string' }, example: ['All Region', 'REGIONAL 1', 'REGIONAL 2'] },
+                      nops: { type: 'array', items: { type: 'string' }, example: ['All NOP', 'NOP JAKARTA', 'NOP BANDUNG'] },
+                      regencies: { type: 'array', items: { type: 'string' }, example: ['All Regency', 'Jakarta Selatan', 'Bandung'] },
+                      powerRanges: { type: 'array', items: { type: 'string' }, example: ['All Range', '< 53.000 VA', '>= 53.000 VA'] },
+                      payloadLevels: { type: 'array', items: { type: 'string' }, example: ['All Payload', 'Low', 'Medium', 'High'] },
+                      outlierTypes: { type: 'array', items: { type: 'string' }, example: ['All Outlier', 'Valid', 'Over', 'Under'] },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
+  '/api/v1/power-usage-billing/model-performance': {
+    get: {
+      tags: ['Power Usage Billing'],
+      summary: 'Get model performance summary',
+      description: 'Fetch prediction model performance metrics grouped by cluster (daya_cluster). Includes R², RMSE, MAE, and MAPE metrics.',
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': {
+          description: 'Model performance summary by cluster',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        dayaCluster: { type: 'string', example: 'below_53k' },
+                        totalSites: { type: 'integer', example: 5000 },
+                        avgR2: { type: 'number', example: 0.813 },
+                        avgRmse: { type: 'number', example: 488.55 },
+                        avgMae: { type: 'number', example: 350.2 },
+                        avgMape: { type: 'number', example: 12.5 },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
+  '/api/v1/power-usage-billing/sites/{siteId}/monthly': {
+    get: {
+      tags: ['Power Usage Billing'],
+      summary: 'Get site monthly data',
+      description: 'Fetch monthly consumption and billing series for a specific site. Returns up to 24 months of historical data.',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          in: 'path',
+          name: 'siteId',
+          required: true,
+          schema: { type: 'string', example: 'ADL003' },
+          description: 'Site ID',
+        },
+      ],
+      responses: {
+        '200': {
+          description: 'Monthly consumption and billing series',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      consumptionSeries: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            m: { type: 'string', example: 'Jan' },
+                            predicted: { type: 'number', example: 3500 },
+                            actual: { type: 'number', example: 3650 },
+                          },
+                        },
+                      },
+                      billingSeries: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            m: { type: 'string', example: 'Jan' },
+                            predicted: { type: 'number', example: 5056450 },
+                            actual: { type: 'number', example: 5273205 },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '400': { $ref: '#/components/responses/BadRequest' },
+        '401': { $ref: '#/components/responses/Unauthorized' },
+      },
+    },
+  },
 };

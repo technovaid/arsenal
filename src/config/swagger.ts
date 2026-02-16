@@ -305,6 +305,10 @@ Semua error menggunakan format standar:
         description: 'Power usage and billing data endpoints',
       },
       {
+        name: 'Power Usage Billing',
+        description: 'Power usage billing analytics from ClickHouse - includes predicted/actual kWh, billing calculations, deviation analysis, and model performance metrics',
+      },
+      {
         name: 'Notifications',
         description: 'User notification endpoints',
       },
