@@ -93,7 +93,7 @@ class PowerUsageBillingService {
       const whereClauses: string[] = [`p.yearmonth = ${yearmonth}`];
       
       if (filters.region && filters.region !== 'All Region') {
-        whereClauses.push(`s.regional = '${filters.region}'`);
+        whereClauses.push(`s.provinsi = '${filters.region}'`);
       }
       if (filters.nop && filters.nop !== 'All NOP') {
         whereClauses.push(`s.nop = '${filters.nop}'`);
@@ -108,7 +108,7 @@ class PowerUsageBillingService {
         SELECT
           p.site_id as siteId,
           coalesce(s.site_name, p.site_id) as siteName,
-          coalesce(s.regional, 'Unknown') as region,
+          coalesce(s.provinsi, 'Unknown') as region,
           coalesce(s.nop, 'Unknown') as nop,
           coalesce(s.kabupaten_kota, 'Unknown') as regency,
           coalesce(s.latitude, 0) as latitude,
@@ -395,12 +395,14 @@ class PowerUsageBillingService {
   }
 
   /**
-   * Get filter options (regions, NOPs, regencies)
+   * Get filter options (regions, NOPs, regencies) with cascading mappings
    */
   async getFilterOptions(): Promise<{
     regions: string[];
     nops: string[];
     regencies: string[];
+    nopsByRegion: Record<string, string[]>;
+    regenciesByNop: Record<string, string[]>;
     powerRanges: string[];
     payloadLevels: string[];
     outlierTypes: string[];
@@ -408,7 +410,7 @@ class PowerUsageBillingService {
     try {
       const query = `
         SELECT DISTINCT
-          coalesce(s.regional, 'Unknown') as region,
+          coalesce(s.provinsi, 'Unknown') as region,
           coalesce(s.nop, 'Unknown') as nop,
           coalesce(s.kabupaten_kota, 'Unknown') as regency
         FROM gold.kwh_predictions_v0 p
@@ -423,14 +425,48 @@ class PowerUsageBillingService {
 
       const rawData = await result.json<{ region: string; nop: string; regency: string }[]>();
 
-      const regions = ['All Region', ...new Set(rawData.map((r) => r.region).filter(Boolean))];
-      const nops = ['All NOP', ...new Set(rawData.map((r) => r.nop).filter(Boolean))];
-      const regencies = ['All Regency', ...new Set(rawData.map((r) => r.regency).filter(Boolean))];
+      const regions = ['All Region', ...new Set(rawData.map((r) => r.region).filter(Boolean).sort())];
+      const nops = ['All NOP', ...new Set(rawData.map((r) => r.nop).filter(Boolean).sort())];
+      const regencies = ['All Regency', ...new Set(rawData.map((r) => r.regency).filter(Boolean).sort())];
+
+      // Build nopsByRegion mapping
+      const nopsByRegion: Record<string, string[]> = {};
+      for (const row of rawData) {
+        if (!row.region || !row.nop) continue;
+        if (!nopsByRegion[row.region]) {
+          nopsByRegion[row.region] = [];
+        }
+        if (!nopsByRegion[row.region].includes(row.nop)) {
+          nopsByRegion[row.region].push(row.nop);
+        }
+      }
+      // Sort NOPs within each region
+      for (const region of Object.keys(nopsByRegion)) {
+        nopsByRegion[region].sort();
+      }
+
+      // Build regenciesByNop mapping
+      const regenciesByNop: Record<string, string[]> = {};
+      for (const row of rawData) {
+        if (!row.nop || !row.regency) continue;
+        if (!regenciesByNop[row.nop]) {
+          regenciesByNop[row.nop] = [];
+        }
+        if (!regenciesByNop[row.nop].includes(row.regency)) {
+          regenciesByNop[row.nop].push(row.regency);
+        }
+      }
+      // Sort regencies within each NOP
+      for (const nop of Object.keys(regenciesByNop)) {
+        regenciesByNop[nop].sort();
+      }
 
       return {
         regions,
         nops,
         regencies,
+        nopsByRegion,
+        regenciesByNop,
         powerRanges: ['All Range', '< 53.000 VA', '>= 53.000 VA'],
         payloadLevels: ['All Payload', 'Low', 'Medium', 'High'],
         outlierTypes: ['All Outlier', 'Valid', 'Over', 'Under'],
