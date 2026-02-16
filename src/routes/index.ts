@@ -10,6 +10,8 @@ import anomalyRoutes from './anomaly.routes';
 import settlementRoutes from './settlement.routes';
 import powerBackupRoutes from './powerBackup.routes';
 import userRoutes from './user.routes';
+import analyticsRoutes from './analytics.routes';
+import powerUsageBillingRoutes from './powerUsageBilling.routes';
 
 const router = Router();
 
@@ -25,5 +27,7 @@ router.use('/anomalies', anomalyRoutes);
 router.use('/settlements', settlementRoutes);
 router.use('/power-backup', powerBackupRoutes);
 router.use('/users', userRoutes);
+router.use('/analytics', analyticsRoutes);
+router.use('/power-usage-billing', powerUsageBillingRoutes);
 
 export default router;

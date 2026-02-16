@@ -29,6 +29,7 @@
   "author": "Backend Team",
   "license": "MIT",
   "dependencies": {
+    "@clickhouse/client": "^0.2.5",
     "@prisma/client": "^5.7.0",
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.4",
