@@ -156,7 +156,7 @@ erDiagram
     Ticket {
         uuid id PK
         string ticketNumber UK
-        string alertId FK UK
+        string alertId UK
         string title
         string description
         enum priority
