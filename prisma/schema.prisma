@@ -493,6 +493,182 @@ model SystemConfig {
 }
 
 // ============================================
+// ISR LINK (UC2 - SETTLEMENT)
+// ============================================
+
+model IsrLink {
+  id              String    @id @default(uuid())
+
+  // Core ISR
+  isr             BigInt
+  applicationId   BigInt?
+  licenseNumber   BigInt?
+  isrStatus       String?
+  regionCode      String?
+  regionName      String?
+  isrDate         DateTime?
+  expDate         DateTime?
+  freqTx          Float?
+  freqRx          Float?
+
+  // Near End (NE)
+  nearIdAntena    String?
+  nearSite        String?
+  nearSiteName    String?
+  nearLatDecimal  Float?
+  nearLongDecimal Float?
+  nearProvinsi    String?
+  nearCity        String?
+  nearKecamatan   String?
+  nearAddress     String?
+  nearAgl         Float?
+  nearPower       Float?
+
+  // Far End (FE)
+  farIdAntena     String?
+  farSite         String?
+  farSiteName     String?
+  farLatDecimal   Float?
+  farLongDecimal  Float?
+  farProvinsi     String?
+  farCity         String?
+  farKecamatan    String?
+  farAddress      String?
+  farAgl          Float?
+  farPower        Float?
+
+  // Radio
+  radioType       String?
+  polarization    String?
+  bandwidth       Float?
+  vendorName      String?
+  nearIdPerangkat String?
+  farIdPerangkat  String?
+  onAirDate       DateTime?
+
+  // MDRS Near End
+  mdrsNeSitenameTelkomsel String?
+  mdrsNeRegion            String?
+  mdrsNeLongitude         Float?
+  mdrsNeLatitude          Float?
+  mdrsNeMdrsCode          String?
+  mdrsNePlusCode          String?
+  mdrsNeSitenameKominfo   String?
+  mdrsNeLongitudeRegion   Float?
+  mdrsNeLatitudeRegion    Float?
+  mdrsNeProvince          String?
+  mdrsNeDistrict          String?
+  mdrsNeCity              String?
+  mdrsNeVillage           String?
+  mdrsNeZone              String?
+  mdrsNeSpectrumGrid      String?
+  mdrsNeCreationDate      String?
+  mdrsNeStatus            String?
+
+  // MDRS Far End
+  mdrsFeSitenameTelkomsel String?
+  mdrsFeRegion            String?
+  mdrsFeLongitude         Float?
+  mdrsFeLatitude          Float?
+  mdrsFeMdrsCode          String?
+  mdrsFePlusCode          String?
+  mdrsFeSitenameKominfo   String?
+  mdrsFeLongitudeRegion   Float?
+  mdrsFeLatitudeRegion    Float?
+  mdrsFeProvince          String?
+  mdrsFeDistrict          String?
+  mdrsFeCity              String?
+  mdrsFeVillage           String?
+  mdrsFeZone              String?
+  mdrsFeSpectrumGrid      String?
+  mdrsFeCreationDate      String?
+  mdrsFeStatus            String?
+
+  // Invoice
+  invId               String?
+  invNoInvoice        String?
+  invNoRr             String?
+  invNilaiInvoice     Float?
+  invNilaiBayar       Float?
+  invStatusInvoice    String?
+  invPeriodeAwal      DateTime?
+  invPeriodeAkhir     DateTime?
+  invTanggalTerbit    DateTime?
+  invJatuhTempo       DateTime?
+  invTanggalBayar     DateTime?
+  invNearEndSiteId    String?
+  invFarEndSiteId     String?
+  invTipeInvoice      String?
+  invTerakhirDownload String?
+
+  // Potency (UC1)
+  potNomor        String?
+  potRegion       String?
+  potCount        Int?
+  potSiteNameNe   String?
+  potSiteNameFe   String?
+  potLongNe       Float?
+  potLatNe        Float?
+  potLongFe       Float?
+  potLatFe        Float?
+  potFrekNe       String?
+  potFrekFe       String?
+  potBw           Float?
+
+  // UC2 – MDRS Coordinate Compliance
+  jarakDeviasiNeMeter   Float?
+  jarakDeviasiFeMeter   Float?
+  statusUc2Ne           String?
+  statusUc2Fe           String?
+
+  // UC1 – Potency Match
+  distIsrPotensiNeMeter Float?
+  distIsrPotensiFeMeter Float?
+  statusUc1PotensiNe    String?
+  statusUc1PotensiFe    String?
+  statusRadiusNe        String?
+  statusRadiusFe        String?
+  tipeAnomalyNe         String?
+  tipeAnomalyFe         String?
+  statusKombinasiNeFe   String?
+  rootCauseCategory     String?
+  incompleteCategory    String?
+
+  // Radio Frequency Compliance
+  matchTxNe       Boolean?
+  matchRxFe       Boolean?
+  matchBw         Boolean?
+  spectrumStatus  String?
+  distAbsNe       Float?
+  distAbsFe       Float?
+  signCheckNe     String?
+  signCheckFe     String?
+  finalValidationStatus String?
+
+  // BW Distance Compliance
+  freqGhz         Float?
+  bandCategory    String?
+  minDistanceKm   Float?
+  maxDistanceKm   Float?
+  linkDistanceKm  Float?
+  ruleCompliance  String?
+  distanceGapKm   Float?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([isr])
+  @@index([licenseNumber])
+  @@index([regionCode])
+  @@index([nearSite])
+  @@index([farSite])
+  @@index([isrStatus])
+  @@index([statusKombinasiNeFe])
+  @@index([ruleCompliance])
+  @@map("isr_links")
+}
+
+// ============================================
 // AUDIT LOG
 // ============================================
 
